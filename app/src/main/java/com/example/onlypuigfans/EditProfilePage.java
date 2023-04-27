@@ -483,80 +483,117 @@ public class EditProfilePage extends Fragment {
     }
 
     // We will upload the image from here.
-    private void uploadProfileCoverPhoto(final Uri uri) {
-        //   pd.show();
 
-        // We are taking the filepath as storagepath + firebaseauth.getUid()+".png"
+    private void uploadProfileCoverPhoto(final Uri uri) {
         String filepathname = storagepath + "" + profileOrCoverPhoto + "_" + firebaseUser.getUid();
         StorageReference storageReference1 = storageReference.child(filepathname);
 
-        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                .setPhotoUri(imageuri)
-                .build();
-
-        firebaseUser.updateProfile(profileUpdates)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if (task.isSuccessful()) {
-                            Log.d(TAG, "User profile updated.");
-                            pd.dismiss();
-                            Toast.makeText(getContext(), "Updated", Toast.LENGTH_LONG).show();
-
-                        }
-                    }
-                });
-
-        //  StorageReference storageReference1 = storageReference.child(filepathname);
-        storageReference1.putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+        // Upload the photo to Firebase Storage
+        storageReference1.putFile(uri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
             @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
-                while (!uriTask.isSuccessful()) ;
-
-                // We will get the url of our image using uritask
-                final Uri downloadUri = uriTask.getResult();
-                if (uriTask.isSuccessful()) {
-
-                    // updating our image url into the realtime database
-                    HashMap<String, Object> hashMap = new HashMap<>();
-                    hashMap.put(profileOrCoverPhoto, downloadUri.toString());
-                    databaseReference.child(firebaseUser.getUid()).updateChildren(hashMap).addOnSuccessListener(new OnSuccessListener<Void>() {
-
+            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                if (task.isSuccessful()) {
+                    // Get the download URL of the uploaded photo
+                    storageReference1.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                         @Override
-                        public void onSuccess(Void aVoid) {
-                            pd.dismiss();
-                            Toast.makeText(getContext(), "Updated", Toast.LENGTH_LONG).show();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            pd.dismiss();
-                            Toast.makeText(getContext(), "Error Updating ", Toast.LENGTH_LONG).show();
+                        public void onSuccess(Uri downloadUri) {
+                            // Update the user's profile photo in Firebase Authentication
+                            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                    .setPhotoUri(downloadUri)
+                                    .build();
+                            firebaseUser.updateProfile(profileUpdates)
+                                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Void> task) {
+                                            if (task.isSuccessful()) {
+                                                Log.d(TAG, "User profile updated.");
+                                                pd.dismiss();
+                                                Toast.makeText(getContext(), "Updated", Toast.LENGTH_LONG).show();
+
+                                                // Update the user's profile photo in the Realtime Database
+                                                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(firebaseUser.getUid());
+                                                userRef.child("photoUrl").setValue(downloadUri.toString());
+                                            }
+                                        }
+                                    });
                         }
                     });
                 } else {
+                    // Handle error
                     pd.dismiss();
-                    Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Upload failed: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                 }
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                pd.dismiss();
-                Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
             }
         });
     }
+
+
+//    private void uploadProfileCoverPhoto(final Uri uri) {
+//        //   pd.show();
+//
+//        // We are taking the filepath as storagepath + firebaseauth.getUid()+".png"
+//        String filepathname = storagepath + "" + profileOrCoverPhoto + "_" + firebaseUser.getUid();
+//        StorageReference storageReference1 = storageReference.child(filepathname);
+//
+//        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+//                .setPhotoUri(imageuri)
+//                .build();
+//
+//        firebaseUser.updateProfile(profileUpdates)
+//                .addOnCompleteListener(new OnCompleteListener<Void>() {
+//                    @Override
+//                    public void onComplete(@NonNull Task<Void> task) {
+//                        if (task.isSuccessful()) {
+//                            Log.d(TAG, "User profile updated.");
+//                            pd.dismiss();
+//                            Toast.makeText(getContext(), "Updated", Toast.LENGTH_LONG).show();
+//
+//                        }
+//                    }
+//                });
+//
+//
+//        //  StorageReference storageReference1 = storageReference.child(filepathname);
+//        storageReference1.putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+//            @Override
+//            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+//                Task<Uri> uriTask = taskSnapshot.getStorage().getDownloadUrl();
+//                while (!uriTask.isSuccessful()) ;
+//
+//                // We will get the url of our image using uritask
+//                final Uri downloadUri = uriTask.getResult();
+//                if (uriTask.isSuccessful()) {
+//
+//                    // updating our image url into the realtime database
+//                    HashMap<String, Object> hashMap = new HashMap<>();
+//                    hashMap.put(profileOrCoverPhoto, downloadUri.toString());
+//                    databaseReference.child(firebaseUser.getUid()).updateChildren(hashMap).addOnSuccessListener(new OnSuccessListener<Void>() {
+//
+//                        @Override
+//                        public void onSuccess(Void aVoid) {
+//                            pd.dismiss();
+//                            Toast.makeText(getContext(), "Updated", Toast.LENGTH_LONG).show();
+//                        }
+//                    }).addOnFailureListener(new OnFailureListener() {
+//                        @Override
+//                        public void onFailure(@NonNull Exception e) {
+//                            pd.dismiss();
+//                            Toast.makeText(getContext(), "Error Updating ", Toast.LENGTH_LONG).show();
+//                        }
+//                    });
+//                } else {
+//                    pd.dismiss();
+//                    Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
+//                }
+//            }
+//        }).addOnFailureListener(new OnFailureListener() {
+//            @Override
+//            public void onFailure(@NonNull Exception e) {
+//                pd.dismiss();
+//                Toast.makeText(getContext(), "Error", Toast.LENGTH_LONG).show();
+//            }
+//        });
+//    }
 }
-    /*
-    public void botonAceptar (){
-        Intent intent= new Intent (this, MainActivity.class);
-     //   MainActivity.replaceFragment(R.id)
 
-      //  intent.putExtra("frag", "fragmentB");
-        startActivity(intent);
-    }
-
-     */
 

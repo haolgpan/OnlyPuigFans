@@ -145,17 +145,6 @@ public class MainActivity extends AppCompatActivity {
         drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
     }
 
-    public class DetailViewActivity extends AppCompatActivity implements MyInterface {
-        @Override
-        public void lockDrawer() {
-            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-        }
-
-        @Override
-        public void unlockDrawer() {
-            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-        }
-    }
     public void replaceFragment(Fragment fragmentName){
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
